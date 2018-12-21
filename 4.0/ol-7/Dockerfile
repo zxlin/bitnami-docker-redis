@@ -10,6 +10,7 @@ ENV BITNAMI_PKG_CHMOD="-R g+rwX" \
 # Install required system packages and dependencies
 RUN install_packages glibc
 RUN . ./libcomponent.sh && component_unpack "redis" "4.0.12-0" --checksum 09e279009d6e8ed23451bf3988e9bf1baa9920e073e62da5d431d91c55d07dd7
+RUN mkdir /docker-entrypoint-modules.d/
 
 COPY rootfs /
 RUN /prepare.sh

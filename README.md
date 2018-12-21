@@ -177,6 +177,12 @@ $ docker-compose up -d
 
 # Configuration
 
+## Loading a custom module during initialization
+
+When the container is initialized, it will load the Redis modules with extensions .so located at `/docker-entrypoint-modules.d/`.
+
+In order to have your custom modules inside the docker image you can mount them as a volume.
+
 ## Disabling Redis commands
 
 For security reasons, you may want to disable some commands. You can specify them by using the following environment

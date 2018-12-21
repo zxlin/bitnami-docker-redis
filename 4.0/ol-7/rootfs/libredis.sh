@@ -24,8 +24,10 @@
 #########################
 redis_conf_get() {
     local key="${1:?missing key}"
+    local value
 
-    grep -E "^\s*$key " "${REDIS_BASEDIR}/etc/redis.conf" | awk '{print $2}'
+    value="$(grep -E "^\s*$key " "${REDIS_BASEDIR}/etc/redis.conf" | awk '{print $2}')"
+    echo "$value"
 }
 
 ########################
@@ -131,8 +133,12 @@ redis_stop() {
     pass="$(redis_conf_get "requirepass")"
     port="$(redis_conf_get "port")"
 
-    [[ -n "$pass" ]] && args+=("-a" "\"$pass\"")
-    [[ "$port" != "0" ]] && args+=("-p" "$port")
+    if [[ -n "$pass" ]]; then
+        args+=("-a" "\"$pass\"")
+    fi
+    if [[ "$port" != "0" ]]; then
+        args+=("-p" "$port")
+    fi
 
     debug "Stopping Redis..."
     if am_i_root; then
@@ -159,13 +165,16 @@ redis_stop() {
 # Returns:
 #   None
 #########################
-redis_start() {
+redis_start_bg() {
+    local args=("$REDIS_BASEDIR/etc/redis.conf" "--daemonize" "yes" "$@")
+    local exec
+    exec=$(command -v redis-server)
     is_redis_running && return
     debug "Starting Redis..."
     if am_i_root; then
-        gosu "$REDIS_DAEMON_USER" "${REDIS_BASEDIR}/bin/redis-server" "${REDIS_BASEDIR}/etc/redis.conf"
+        gosu "$REDIS_DAEMON_USER" "${exec}" "${args[@]}"
     else
-        "${REDIS_BASEDIR}/bin/redis-server" "${REDIS_BASEDIR}/etc/redis.conf"
+        "${exec}" "${args[@]}"
     fi
     local counter=3
     while ! is_redis_running ; do
@@ -308,8 +317,8 @@ redis_initialize() {
     info "Initializing Redis..."
 
     # User injected custom configuration
-    if [[ -e "$REDIS_BASEDIR/etc/redis.conf" ]]; then
-        if [[ -e "$REDIS_BASEDIR/etc/redis-default.conf" ]]; then
+    if [[ -e "${REDIS_BASEDIR}/etc/redis.conf" ]]; then
+        if [[ -e "${REDIS_BASEDIR}/etc/redis-default.conf" ]]; then
             rm "${REDIS_BASEDIR}/etc/redis-default.conf"
         fi
     else
@@ -320,7 +329,7 @@ redis_initialize() {
                 chown "$REDIS_DAEMON_USER:$REDIS_DAEMON_GROUP" "$dir"
             fi
         done
-        mv "$REDIS_BASEDIR/etc/redis-default.conf" "$REDIS_BASEDIR/etc/redis.conf"
+        mv "${REDIS_BASEDIR}/etc/redis-default.conf" "${REDIS_BASEDIR}/etc/redis.conf"
 
         # Redis config
         debug "Setting Redis config file..."
@@ -347,5 +356,26 @@ redis_initialize() {
         if [[ -n "$REDIS_REPLICATION_MODE" ]]; then
             redis_configure_replication
         fi
+    fi
+}
+
+########################
+# Load custom Redis modules
+# Globals:
+#   REDIS_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+redis_custom_modules() {
+    if [[ -n $(find /docker-entrypoint-modules.d/ -type f -regex ".*\.\(so\)") ]]; then
+        info "Loading user's custom modules from /docker-entrypoint-modules.d ...";
+        for f in /docker-entrypoint-modules.d/*; do
+            case "$f" in
+                *.so) debug "Loading $f"; redis_conf_set loadmodule "$f";;
+                *)    debug "Ignoring $f" ;;
+            esac
+        done
     fi
 }

@@ -21,3 +21,5 @@ trap "redis_stop" EXIT
 am_i_root && ensure_user_exists "$REDIS_DAEMON_USER" "$REDIS_DAEMON_GROUP"
 # Ensure Redis is initialized
 redis_initialize
+# Allow loading custom Redis modules
+redis_custom_modules
