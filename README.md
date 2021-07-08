@@ -292,7 +292,7 @@ services:
 
 ## Setting up a standalone instance
 
-By default, this image is set up to launch Redis(TM) in standalone mode on the default port number of 6379. Should you need to change this behaviour, setting the `REDIS_PORT_NUMBER` environment variable will modify the port number. This is not to be confused with `REDIS_MASTER_PORT_NUMBER` or `REDIS_REPLICA_PORT` environment variables that are applicable in replication mode.
+By default, this image is set up to launch Redis(TM) in standalone mode on port 6379. Should you need to change this behavior, setting the `REDIS_PORT_NUMBER` environment variable will modify the port number. This is not to be confused with `REDIS_MASTER_PORT_NUMBER` or `REDIS_REPLICA_PORT` environment variables that are applicable in replication mode.
 
 ```console
 $ docker run --name redis -e REDIS_PORT_NUMBER=7000 -p 7000:7000 bitnami/redis:latest
